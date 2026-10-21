@@ -1,0 +1,29 @@
+[project]
+name = "django-big-project"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "olasp",email = "olaspain@BK.RU"}
+]
+requires-python = ">=3.13"
+dependencies = [
+    "django (>=6.1.2,<7.0.0)",
+    "black (>=26.10.1,<27.0.0)",
+    "isort (>=9.0.2,<10.0.0)",
+    "flake8 (>=7.4.1,<8.0.0)",
+    "python-dotenv (>=1.2.4,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+line-length = 119
+
+
+[tool.isort]
+profile = "black"
+line_length = 119
