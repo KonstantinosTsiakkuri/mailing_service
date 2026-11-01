@@ -8,7 +8,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, T
 
 from mailing.forms import MailingForm
 from mailing.models import Client, Mailing, Message
-from mailing.services import MailingSendError, get_home_statistics, send_mailing
+from mailing.services import MailingSendError, get_home_statistics, get_user_statistics, send_mailing
 
 # Во всех view ниже get_queryset оставляет только объекты текущего пользователя (owner=self.request.user).
 # Чужой объект просто "не найден" в этом наборе, поэтому Django отвечает 404.
@@ -23,6 +23,15 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(get_home_statistics())
+        return context
+
+
+class StatisticsView(LoginRequiredMixin, TemplateView):
+    template_name = "mailing/statistics.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(get_user_statistics(self.request.user))
         return context
 
 

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Статистика рассылок</h1>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="display-5">{{ success }}</div>
+                    <div class="text-muted">Успешных попыток</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="display-5">{{ failed }}</div>
+                    <div class="text-muted">Неуспешных попыток</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="display-5">{{ success }}</div>
+                    <div class="text-muted">Отправлено сообщений</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h4 mb-3">По рассылкам</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Сообщение</th>
+                <th>Начало</th>
+                <th>Окончание</th>
+                <th>Успешно</th>
+                <th>Неуспешно</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in mailings %}
+                <tr>
+                    <td>{{ row.message__subject }}</td>
+                    <td>{{ row.start_time|date:"d.m.Y H:i" }}</td>
+                    <td>{{ row.end_time|date:"d.m.Y H:i" }}</td>
+                    <td>{{ row.success }}</td>
+                    <td>{{ row.failed }}</td>
+                    <td><a href="{% url 'mailing:mailing_detail' row.pk %}">Открыть</a></td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">Рассылок пока нет</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

@@ -1,4 +1,5 @@
 from django.core.mail import send_mail
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from mailing.models import Client, Mailing, MailingAttempt
@@ -62,4 +63,32 @@ def get_home_statistics():
             status=Mailing.STATUS_LAUNCHED, is_active=True, start_time__lte=now, end_time__gte=now
         ).count(),
         "clients_total": Client.objects.count(),
+    }
+
+
+def get_user_statistics(user):
+    """Статистика попыток рассылок пользователя: итоги и разбивка по каждой рассылке."""
+    success_filter = Q(status=MailingAttempt.STATUS_SUCCESS)
+    failed_filter = Q(status=MailingAttempt.STATUS_FAILED)
+
+    # Итоги: один запрос, подсчёт делает база данных
+    totals = MailingAttempt.objects.filter(mailing__owner=user).aggregate(
+        success=Count("id", filter=success_filter),
+        failed=Count("id", filter=failed_filter),
+    )
+
+    # По каждой рассылке: тоже один запрос, у каждой строки появляются поля success и failed
+    mailings = (
+        Mailing.objects.filter(owner=user)
+        .annotate(
+            success=Count("attempts", filter=Q(attempts__status=MailingAttempt.STATUS_SUCCESS)),
+            failed=Count("attempts", filter=Q(attempts__status=MailingAttempt.STATUS_FAILED)),
+        )
+        .order_by("-start_time")
+        .values("pk", "message__subject", "start_time", "end_time", "success", "failed")
+    )
+    return {
+        "success": totals["success"],
+        "failed": totals["failed"],
+        "mailings": list(mailings),
     }
