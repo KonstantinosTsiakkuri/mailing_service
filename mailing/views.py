@@ -10,6 +10,9 @@ from mailing.forms import MailingForm
 from mailing.models import Client, Mailing, Message
 from mailing.services import MailingSendError, get_home_statistics, send_mailing
 
+# Во всех view ниже get_queryset оставляет только объекты текущего пользователя (owner=self.request.user).
+# Чужой объект просто "не найден" в этом наборе, поэтому Django отвечает 404.
+
 
 class HomeView(TemplateView):
     template_name = "mailing/home.html"
@@ -25,6 +28,9 @@ class ClientListView(LoginRequiredMixin, ListView):
     template_name = "mailing/client_list.html"
     context_object_name = "clients"
 
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
+
 
 class ClientCreateView(LoginRequiredMixin, CreateView):
     model = Client
@@ -36,11 +42,18 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
     template_name = "mailing/client_form.html"
     success_url = reverse_lazy("mailing:client_list")
 
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
 
 class ClientDetailView(LoginRequiredMixin, DetailView):
     model = Client
     template_name = "mailing/client_detail.html"
     context_object_name = "client"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
 
 
 class ClientUpdateView(LoginRequiredMixin, UpdateView):
@@ -53,6 +66,9 @@ class ClientUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "mailing/client_form.html"
     success_url = reverse_lazy("mailing:client_list")
 
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
+
 
 class ClientDeleteView(LoginRequiredMixin, DeleteView):
     model = Client
@@ -60,11 +76,17 @@ class ClientDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("mailing:client_list")
     context_object_name = "client"
 
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
+
 
 class MessageListView(LoginRequiredMixin, ListView):
     model = Message
     template_name = "mailing/message_list.html"
     context_object_name = "message_list"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
 
 
 class MessageCreateView(LoginRequiredMixin, CreateView):
@@ -73,11 +95,18 @@ class MessageCreateView(LoginRequiredMixin, CreateView):
     template_name = "mailing/message_form.html"
     success_url = reverse_lazy("mailing:message_list")
 
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
 
 class MessageDetailView(LoginRequiredMixin, DetailView):
     model = Message
     template_name = "mailing/message_detail.html"
     context_object_name = "message"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
 
 
 class MessageUpdateView(LoginRequiredMixin, UpdateView):
@@ -86,12 +115,18 @@ class MessageUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "mailing/message_form.html"
     success_url = reverse_lazy("mailing:message_list")
 
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
+
 
 class MessageDeleteView(LoginRequiredMixin, DeleteView):
     model = Message
     template_name = "mailing/message_confirm_delete.html"
     success_url = reverse_lazy("mailing:message_list")
     context_object_name = "message"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
 
     def form_valid(self, form):
         # В Django 4+ само удаление выполняется здесь, поэтому ProtectedError ловим тоже здесь
@@ -108,7 +143,13 @@ class MailingListView(LoginRequiredMixin, ListView):
     context_object_name = "mailings"
 
     def get_queryset(self):
-        mailings = super().get_queryset().select_related("message").prefetch_related("recipients")
+        mailings = (
+            super()
+            .get_queryset()
+            .filter(owner=self.request.user)
+            .select_related("message")
+            .prefetch_related("recipients")
+        )
         for mailing in mailings:
             mailing.update_status()
         return mailings
@@ -120,11 +161,24 @@ class MailingCreateView(LoginRequiredMixin, CreateView):
     template_name = "mailing/mailing_form.html"
     success_url = reverse_lazy("mailing:mailing_list")
 
+    def get_form_kwargs(self):
+        # Передаём пользователя в форму, чтобы в ней были только его сообщения и клиенты
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
 
 class MailingDetailView(LoginRequiredMixin, DetailView):
     model = Mailing
     template_name = "mailing/mailing_detail.html"
     context_object_name = "mailing"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
 
     def get_object(self, queryset=None):
         mailing = super().get_object(queryset)
@@ -137,6 +191,14 @@ class MailingUpdateView(LoginRequiredMixin, UpdateView):
     form_class = MailingForm
     template_name = "mailing/mailing_form.html"
     success_url = reverse_lazy("mailing:mailing_list")
+
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -151,12 +213,15 @@ class MailingDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("mailing:mailing_list")
     context_object_name = "mailing"
 
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
+
 
 class MailingSendView(LoginRequiredMixin, View):
     """Запуск рассылки кнопкой. Принимает только POST (данные меняются, поэтому GET нельзя)."""
 
     def post(self, request, pk):
-        mailing = get_object_or_404(Mailing, pk=pk)
+        mailing = get_object_or_404(Mailing, pk=pk, owner=request.user)
         try:
             success, failed = send_mailing(mailing)
         except MailingSendError as error:

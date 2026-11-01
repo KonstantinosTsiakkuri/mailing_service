@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -6,6 +7,7 @@ class Client(models.Model):
     email = models.EmailField(unique = True, max_length=150, verbose_name = "Email")
     full_name = models.CharField(max_length=150, verbose_name = "ФИО")
     comment = models.TextField(blank = True, verbose_name = "Комментарий")
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete = models.CASCADE, verbose_name = "Владелец")
 
 
     def __str__(self):
@@ -21,6 +23,7 @@ class Client(models.Model):
 class Message(models.Model):
     subject = models.CharField(max_length = 100, verbose_name = "Тема письма")
     body = models.TextField(verbose_name = "Содержание письма")
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete = models.CASCADE, verbose_name = "Владелец")
 
 
     def __str__(self):
@@ -47,6 +50,7 @@ class Mailing(models.Model):
     status = models.CharField(verbose_name = "Статус рассылки", choices = STATUS_CHOICES , default  = STATUS_CREATED, editable=False, max_length = 100)
     message = models.ForeignKey(Message, on_delete = models.PROTECT, verbose_name = "Сообщение рассылки")
     recipients = models.ManyToManyField(Client, verbose_name = "Получатели рассылок")
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete = models.CASCADE, verbose_name = "Владелец")
 
 
     def __str__(self):

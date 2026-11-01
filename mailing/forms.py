@@ -1,6 +1,6 @@
 from django import forms
 
-from mailing.models import Mailing
+from mailing.models import Client, Mailing, Message
 
 
 class MailingForm(forms.ModelForm):
@@ -19,3 +19,9 @@ class MailingForm(forms.ModelForm):
             "message": forms.Select(attrs={"class": "form-select"}),
             "recipients": forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
         }
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        # В выпадающем списке и галочках - только сообщения и клиенты текущего пользователя
+        self.fields["message"].queryset = Message.objects.filter(owner=user)
+        self.fields["recipients"].queryset = Client.objects.filter(owner=user)
