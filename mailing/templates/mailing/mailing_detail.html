@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Рассылка «{{ mailing.message.subject }}»{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Рассылка</h1>
+    <p>
+        <strong>Сообщение:</strong>
+        <a href="{% url 'mailing:message_detail' mailing.message.pk %}">{{ mailing.message.subject }}</a>
+    </p>
+    <p><strong>Начало:</strong> {{ mailing.start_time|date:"d.m.Y H:i" }}</p>
+    <p><strong>Окончание:</strong> {{ mailing.end_time|date:"d.m.Y H:i" }}</p>
+    <p><strong>Статус:</strong> {{ mailing.status }}</p>
+
+    <h2 class="h4 mt-4">Получатели</h2>
+    <ul>
+        {% for client in mailing.recipients.all %}
+            <li>{{ client.full_name }} ({{ client.email }})</li>
+        {% empty %}
+            <li>Получателей нет</li>
+        {% endfor %}
+    </ul>
+
+    <h2 class="h4 mt-4">Попытки отправки</h2>
+    {% with attempts=mailing.attempts.all %}
+        {% if attempts %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Время</th>
+                        <th>Статус</th>
+                        <th>Получатель</th>
+                        <th>Ответ сервера</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in attempts %}
+                        <tr>
+                            <td>{{ attempt.attempt_time|date:"d.m.Y H:i" }}</td>
+                            <td>{{ attempt.status }}</td>
+                            <td>{{ attempt.recipient.email|default:"—" }}</td>
+                            <td>{{ attempt.server_response }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Попыток пока не было</p>
+        {% endif %}
+    {% endwith %}
+
+    <a href="{% url 'mailing:mailing_list' %}" class="btn btn-secondary">Назад к списку</a>
+    <a href="{% url 'mailing:mailing_update' mailing.pk %}" class="btn btn-primary">Изменить</a>
+    <a href="{% url 'mailing:mailing_delete' mailing.pk %}" class="btn btn-danger">Удалить</a>
+{% endblock %}

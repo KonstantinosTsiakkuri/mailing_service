@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Список клиентов{% endblock %}
+
+{% block content %}
+     <h1 class="mb-4">Клиенты</h1>
+     <a href="{% url 'mailing:client_create' %}" class="btn btn-primary mb-3">Добавить клиента</a>
+     <table class="table table-striped">
+         <thead>
+            <tr>
+                <th>ФИО</th>
+                <th>Email</th>
+                <th>Комментарий</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+                <tr>
+                    <td>{{ client.full_name }}</td>
+                    <td>{{ client.email }}</td>
+                    <td>{{ client.comment }}</td>
+                    <td><a href="{% url 'mailing:client_detail' client.pk %}">Открыть</a></td>
+                </tr>
+            {% empty  %}
+                <tr>
+                    <td colspan="4">Клиентов пока нет</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
