@@ -49,9 +49,7 @@ def send_mailing(mailing):
         except Exception as error:
             status = MailingAttempt.STATUS_FAILED
             response = f"{type(error).__name__}: {error}"
-        attempts.append(
-            MailingAttempt(mailing=mailing, recipient=client, status=status, server_response=response)
-        )
+        attempts.append(MailingAttempt(mailing=mailing, recipient=client, status=status, server_response=response))
 
     # Все попытки сохраняются одним запросом к БД
     MailingAttempt.objects.bulk_create(attempts)
