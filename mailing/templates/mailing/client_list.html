@@ -11,6 +11,7 @@
                 <th>ФИО</th>
                 <th>Email</th>
                 <th>Комментарий</th>
+                {% if perms.mailing.view_all_clients %}<th>Владелец</th>{% endif %}
                 <th></th>
             </tr>
         </thead>
@@ -20,11 +21,12 @@
                     <td>{{ client.full_name }}</td>
                     <td>{{ client.email }}</td>
                     <td>{{ client.comment }}</td>
+                    {% if perms.mailing.view_all_clients %}<td>{{ client.owner.email }}</td>{% endif %}
                     <td><a href="{% url 'mailing:client_detail' client.pk %}">Открыть</a></td>
                 </tr>
             {% empty  %}
                 <tr>
-                    <td colspan="4">Клиентов пока нет</td>
+                    <td colspan="5">Клиентов пока нет</td>
                 </tr>
             {% endfor %}
         </tbody>

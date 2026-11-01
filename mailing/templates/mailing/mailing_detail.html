@@ -6,16 +6,38 @@
     <h1 class="mb-4">Рассылка</h1>
     <p>
         <strong>Сообщение:</strong>
-        <a href="{% url 'mailing:message_detail' mailing.message.pk %}">{{ mailing.message.subject }}</a>
+        {% if mailing.owner == user %}
+            <a href="{% url 'mailing:message_detail' mailing.message.pk %}">{{ mailing.message.subject }}</a>
+        {% else %}
+            {{ mailing.message.subject }}
+        {% endif %}
     </p>
     <p><strong>Начало:</strong> {{ mailing.start_time|date:"d.m.Y H:i" }}</p>
     <p><strong>Окончание:</strong> {{ mailing.end_time|date:"d.m.Y H:i" }}</p>
-    <p><strong>Статус:</strong> {{ mailing.status }}</p>
+    <p>
+        <strong>Статус:</strong> {{ mailing.status }}
+        {% if not mailing.is_active %}<span class="badge bg-secondary">Отключена менеджером</span>{% endif %}
+    </p>
+    {% if mailing.owner != user %}
+        <p><strong>Владелец:</strong> {{ mailing.owner.email }}</p>
+    {% endif %}
 
-    <form method="post" action="{% url 'mailing:mailing_send' mailing.pk %}" class="mb-3">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-success">Отправить</button>
-    </form>
+    {% if mailing.owner == user %}
+        <form method="post" action="{% url 'mailing:mailing_send' mailing.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success" {% if not mailing.is_active %}disabled{% endif %}>Отправить</button>
+        </form>
+    {% endif %}
+    {% if perms.mailing.disable_mailing %}
+        <form method="post" action="{% url 'mailing:mailing_toggle' mailing.pk %}" class="d-inline">
+            {% csrf_token %}
+            {% if mailing.is_active %}
+                <button type="submit" class="btn btn-warning">Отключить рассылку</button>
+            {% else %}
+                <button type="submit" class="btn btn-warning">Включить рассылку</button>
+            {% endif %}
+        </form>
+    {% endif %}
 
     <h2 class="h4 mt-4">Получатели</h2>
     <ul>
@@ -55,6 +77,8 @@
     {% endwith %}
 
     <a href="{% url 'mailing:mailing_list' %}" class="btn btn-secondary">Назад к списку</a>
-    <a href="{% url 'mailing:mailing_update' mailing.pk %}" class="btn btn-primary">Изменить</a>
-    <a href="{% url 'mailing:mailing_delete' mailing.pk %}" class="btn btn-danger">Удалить</a>
+    {% if mailing.owner == user %}
+        <a href="{% url 'mailing:mailing_update' mailing.pk %}" class="btn btn-primary">Изменить</a>
+        <a href="{% url 'mailing:mailing_delete' mailing.pk %}" class="btn btn-danger">Удалить</a>
+    {% endif %}
 {% endblock %}

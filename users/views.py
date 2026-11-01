@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import (
     LoginView,
@@ -9,13 +10,13 @@ from django.contrib.auth.views import (
     PasswordResetView,
 )
 from django.core.mail import send_mail
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views import View
-from django.views.generic import CreateView
+from django.views.generic import CreateView, ListView
 
 from users.forms import UserLoginForm, UserPasswordResetForm, UserRegisterForm, UserSetPasswordForm
 from users.models import User
@@ -101,3 +102,34 @@ class UserPasswordResetConfirmView(PasswordResetConfirmView):
 
 class UserPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "users/password_reset_complete.html"
+
+
+class UserListView(PermissionRequiredMixin, ListView):
+    """Список пользователей сервиса (для менеджеров)."""
+
+    permission_required = "users.view_all_users"
+    model = User
+    template_name = "users/user_list.html"
+    context_object_name = "user_list"
+    ordering = ["email"]
+
+
+class UserToggleActiveView(PermissionRequiredMixin, View):
+    """Блокировка и разблокировка пользователя (только POST)."""
+
+    permission_required = "users.block_user"
+
+    def post(self, request, pk):
+        target = get_object_or_404(User, pk=pk)
+        if target == request.user:
+            messages.error(request, "Нельзя заблокировать самого себя")
+        elif target.is_superuser:
+            messages.error(request, "Нельзя заблокировать суперпользователя")
+        else:
+            target.is_active = not target.is_active
+            target.save(update_fields=["is_active"])
+            if target.is_active:
+                messages.success(request, f"Пользователь {target.email} разблокирован")
+            else:
+                messages.success(request, f"Пользователь {target.email} заблокирован")
+        return redirect("users:user_list")

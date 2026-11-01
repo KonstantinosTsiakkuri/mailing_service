@@ -18,6 +18,7 @@ class Client(models.Model):
         verbose_name = "Клиент"
         verbose_name_plural = "Клиенты"
         ordering = ["full_name"]
+        permissions = [("view_all_clients", "Может просматривать всех клиентов")]
 
 
 class Message(models.Model):
@@ -50,6 +51,7 @@ class Mailing(models.Model):
     status = models.CharField(verbose_name = "Статус рассылки", choices = STATUS_CHOICES , default  = STATUS_CREATED, editable=False, max_length = 100)
     message = models.ForeignKey(Message, on_delete = models.PROTECT, verbose_name = "Сообщение рассылки")
     recipients = models.ManyToManyField(Client, verbose_name = "Получатели рассылок")
+    is_active = models.BooleanField(default = True, verbose_name = "Активна")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete = models.CASCADE, verbose_name = "Владелец")
 
 
@@ -61,6 +63,10 @@ class Mailing(models.Model):
         verbose_name = "Рассылка"
         verbose_name_plural = "Рассылки"
         ordering = ["status"]
+        permissions = [
+            ("view_all_mailings", "Может просматривать все рассылки"),
+            ("disable_mailing", "Может отключать и включать рассылки"),
+        ]
 
     def update_status(self):
         """

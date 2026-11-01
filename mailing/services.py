@@ -13,6 +13,8 @@ def send_mailing(mailing):
     Отправляет письмо каждому получателю рассылки и сохраняет попытки.
     Возвращает кортеж (успешных, неуспешных). Если рассылку сейчас отправлять нельзя - MailingSendError.
     """
+    if not mailing.is_active:
+        raise MailingSendError("Отправка невозможна: рассылка отключена менеджером")
     mailing.update_status()
     now = timezone.now()
     if not mailing.start_time <= now <= mailing.end_time:
@@ -57,7 +59,7 @@ def get_home_statistics():
     return {
         "mailings_total": Mailing.objects.count(),
         "mailings_active": Mailing.objects.filter(
-            status=Mailing.STATUS_LAUNCHED, start_time__lte=now, end_time__gte=now
+            status=Mailing.STATUS_LAUNCHED, is_active=True, start_time__lte=now, end_time__gte=now
         ).count(),
         "clients_total": Client.objects.count(),
     }

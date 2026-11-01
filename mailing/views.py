@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -12,6 +12,9 @@ from mailing.services import MailingSendError, get_home_statistics, send_mailing
 
 # Во всех view ниже get_queryset оставляет только объекты текущего пользователя (owner=self.request.user).
 # Чужой объект просто "не найден" в этом наборе, поэтому Django отвечает 404.
+# Исключение - просмотр (список и карточка) клиентов и рассылок: тем, у кого есть право
+# view_all_clients / view_all_mailings (менеджеры), показываются все объекты. Менять и удалять
+# чужие объекты не может никто: в view изменения и удаления фильтр по владельцу остаётся всегда.
 
 
 class HomeView(TemplateView):
@@ -29,7 +32,10 @@ class ClientListView(LoginRequiredMixin, ListView):
     context_object_name = "clients"
 
     def get_queryset(self):
-        return super().get_queryset().filter(owner=self.request.user)
+        queryset = super().get_queryset()
+        if self.request.user.has_perm("mailing.view_all_clients"):
+            return queryset
+        return queryset.filter(owner=self.request.user)
 
 
 class ClientCreateView(LoginRequiredMixin, CreateView):
@@ -53,7 +59,10 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "client"
 
     def get_queryset(self):
-        return super().get_queryset().filter(owner=self.request.user)
+        queryset = super().get_queryset()
+        if self.request.user.has_perm("mailing.view_all_clients"):
+            return queryset
+        return queryset.filter(owner=self.request.user)
 
 
 class ClientUpdateView(LoginRequiredMixin, UpdateView):
@@ -143,13 +152,9 @@ class MailingListView(LoginRequiredMixin, ListView):
     context_object_name = "mailings"
 
     def get_queryset(self):
-        mailings = (
-            super()
-            .get_queryset()
-            .filter(owner=self.request.user)
-            .select_related("message")
-            .prefetch_related("recipients")
-        )
+        mailings = super().get_queryset().select_related("message", "owner").prefetch_related("recipients")
+        if not self.request.user.has_perm("mailing.view_all_mailings"):
+            mailings = mailings.filter(owner=self.request.user)
         for mailing in mailings:
             mailing.update_status()
         return mailings
@@ -178,7 +183,10 @@ class MailingDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "mailing"
 
     def get_queryset(self):
-        return super().get_queryset().filter(owner=self.request.user)
+        queryset = super().get_queryset()
+        if self.request.user.has_perm("mailing.view_all_mailings"):
+            return queryset
+        return queryset.filter(owner=self.request.user)
 
     def get_object(self, queryset=None):
         mailing = super().get_object(queryset)
@@ -228,4 +236,20 @@ class MailingSendView(LoginRequiredMixin, View):
             messages.error(request, str(error))
         else:
             messages.success(request, f"Рассылка отправлена: успешно {success}, неуспешно {failed}")
+        return redirect("mailing:mailing_detail", pk=mailing.pk)
+
+
+class MailingToggleActiveView(PermissionRequiredMixin, View):
+    """Отключение и включение рассылки менеджером (любой рассылки, только POST)."""
+
+    permission_required = "mailing.disable_mailing"
+
+    def post(self, request, pk):
+        mailing = get_object_or_404(Mailing, pk=pk)
+        mailing.is_active = not mailing.is_active
+        mailing.save(update_fields=["is_active"])
+        if mailing.is_active:
+            messages.success(request, "Рассылка включена")
+        else:
+            messages.success(request, "Рассылка отключена")
         return redirect("mailing:mailing_detail", pk=mailing.pk)

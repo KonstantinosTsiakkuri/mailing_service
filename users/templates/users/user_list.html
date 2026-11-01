@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Пользователи</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Имя</th>
+                <th>Последний вход</th>
+                <th>Статус</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for person in user_list %}
+                <tr>
+                    <td>{{ person.email }}</td>
+                    <td>{{ person.first_name }} {{ person.last_name }}</td>
+                    <td>{{ person.last_login|date:"d.m.Y H:i"|default:"—" }}</td>
+                    <td>
+                        {% if person.is_active %}
+                            Активен
+                        {% else %}
+                            <span class="badge bg-secondary">Заблокирован</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if perms.users.block_user and person != user and not person.is_superuser %}
+                            <form method="post" action="{% url 'users:user_toggle_active' person.pk %}">
+                                {% csrf_token %}
+                                {% if person.is_active %}
+                                    <button type="submit" class="btn btn-sm btn-danger">Заблокировать</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-success">Разблокировать</button>
+                                {% endif %}
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

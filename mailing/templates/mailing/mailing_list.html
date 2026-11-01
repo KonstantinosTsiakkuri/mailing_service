@@ -13,6 +13,7 @@
                 <th>Окончание</th>
                 <th>Статус</th>
                 <th>Получателей</th>
+                {% if perms.mailing.view_all_mailings %}<th>Владелец</th>{% endif %}
                 <th></th>
             </tr>
         </thead>
@@ -22,13 +23,17 @@
                     <td>{{ mailing.message.subject }}</td>
                     <td>{{ mailing.start_time|date:"d.m.Y H:i" }}</td>
                     <td>{{ mailing.end_time|date:"d.m.Y H:i" }}</td>
-                    <td>{{ mailing.status }}</td>
+                    <td>
+                        {{ mailing.status }}
+                        {% if not mailing.is_active %}<span class="badge bg-secondary">Отключена</span>{% endif %}
+                    </td>
                     <td>{{ mailing.recipients.all|length }}</td>
+                    {% if perms.mailing.view_all_mailings %}<td>{{ mailing.owner.email }}</td>{% endif %}
                     <td><a href="{% url 'mailing:mailing_detail' mailing.pk %}">Открыть</a></td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="6">Рассылок пока нет</td>
+                    <td colspan="7">Рассылок пока нет</td>
                 </tr>
             {% endfor %}
         </tbody>

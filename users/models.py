@@ -35,5 +35,11 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    class Meta(AbstractUser.Meta):
+        permissions = [
+            ("view_all_users", "Может просматривать список пользователей"),
+            ("block_user", "Может блокировать и разблокировать пользователей"),
+        ]
+
     def __str__(self):
         return self.email
