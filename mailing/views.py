@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -19,13 +20,13 @@ class HomeView(TemplateView):
         return context
 
 
-class ClientListView(ListView):
+class ClientListView(LoginRequiredMixin, ListView):
     model = Client
     template_name = "mailing/client_list.html"
     context_object_name = "clients"
 
 
-class ClientCreateView(CreateView):
+class ClientCreateView(LoginRequiredMixin, CreateView):
     model = Client
     fields = [
         "email",
@@ -36,13 +37,13 @@ class ClientCreateView(CreateView):
     success_url = reverse_lazy("mailing:client_list")
 
 
-class ClientDetailView(DetailView):
+class ClientDetailView(LoginRequiredMixin, DetailView):
     model = Client
     template_name = "mailing/client_detail.html"
     context_object_name = "client"
 
 
-class ClientUpdateView(UpdateView):
+class ClientUpdateView(LoginRequiredMixin, UpdateView):
     model = Client
     fields = [
         "email",
@@ -53,40 +54,40 @@ class ClientUpdateView(UpdateView):
     success_url = reverse_lazy("mailing:client_list")
 
 
-class ClientDeleteView(DeleteView):
+class ClientDeleteView(LoginRequiredMixin, DeleteView):
     model = Client
     template_name = "mailing/client_confirm_delete.html"
     success_url = reverse_lazy("mailing:client_list")
     context_object_name = "client"
 
 
-class MessageListView(ListView):
+class MessageListView(LoginRequiredMixin, ListView):
     model = Message
     template_name = "mailing/message_list.html"
     context_object_name = "message_list"
 
 
-class MessageCreateView(CreateView):
+class MessageCreateView(LoginRequiredMixin, CreateView):
     model = Message
     fields = ["subject", "body"]
     template_name = "mailing/message_form.html"
     success_url = reverse_lazy("mailing:message_list")
 
 
-class MessageDetailView(DetailView):
+class MessageDetailView(LoginRequiredMixin, DetailView):
     model = Message
     template_name = "mailing/message_detail.html"
     context_object_name = "message"
 
 
-class MessageUpdateView(UpdateView):
+class MessageUpdateView(LoginRequiredMixin, UpdateView):
     model = Message
     fields = ["subject", "body"]
     template_name = "mailing/message_form.html"
     success_url = reverse_lazy("mailing:message_list")
 
 
-class MessageDeleteView(DeleteView):
+class MessageDeleteView(LoginRequiredMixin, DeleteView):
     model = Message
     template_name = "mailing/message_confirm_delete.html"
     success_url = reverse_lazy("mailing:message_list")
@@ -101,7 +102,7 @@ class MessageDeleteView(DeleteView):
             return redirect("mailing:message_detail", pk=self.object.pk)
 
 
-class MailingListView(ListView):
+class MailingListView(LoginRequiredMixin, ListView):
     model = Mailing
     template_name = "mailing/mailing_list.html"
     context_object_name = "mailings"
@@ -113,14 +114,14 @@ class MailingListView(ListView):
         return mailings
 
 
-class MailingCreateView(CreateView):
+class MailingCreateView(LoginRequiredMixin, CreateView):
     model = Mailing
     form_class = MailingForm
     template_name = "mailing/mailing_form.html"
     success_url = reverse_lazy("mailing:mailing_list")
 
 
-class MailingDetailView(DetailView):
+class MailingDetailView(LoginRequiredMixin, DetailView):
     model = Mailing
     template_name = "mailing/mailing_detail.html"
     context_object_name = "mailing"
@@ -131,7 +132,7 @@ class MailingDetailView(DetailView):
         return mailing
 
 
-class MailingUpdateView(UpdateView):
+class MailingUpdateView(LoginRequiredMixin, UpdateView):
     model = Mailing
     form_class = MailingForm
     template_name = "mailing/mailing_form.html"
@@ -144,14 +145,14 @@ class MailingUpdateView(UpdateView):
         return response
 
 
-class MailingDeleteView(DeleteView):
+class MailingDeleteView(LoginRequiredMixin, DeleteView):
     model = Mailing
     template_name = "mailing/mailing_confirm_delete.html"
     success_url = reverse_lazy("mailing:mailing_list")
     context_object_name = "mailing"
 
 
-class MailingSendView(View):
+class MailingSendView(LoginRequiredMixin, View):
     """Запуск рассылки кнопкой. Принимает только POST (данные меняются, поэтому GET нельзя)."""
 
     def post(self, request, pk):

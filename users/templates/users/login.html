@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Вход</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn btn-primary">Войти</button>
+        <a href="{% url 'users:register' %}" class="btn btn-secondary">Регистрация</a>
+        <a href="{% url 'users:password_reset' %}" class="btn btn-link">Забыли пароль?</a>
+    </form>
+{% endblock %}

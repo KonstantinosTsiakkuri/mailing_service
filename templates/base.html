@@ -12,9 +12,25 @@
             <a class="navbar-brand" href="{% url 'home' %}">Сервис рассылок</a>
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Главная</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'mailing:client_list' %}">Клиенты</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'mailing:message_list' %}">Сообщения</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'mailing:mailing_list' %}">Рассылки</a></li>
+                {% if user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'mailing:client_list' %}">Клиенты</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'mailing:message_list' %}">Сообщения</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'mailing:mailing_list' %}">Рассылки</a></li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav align-items-center">
+                {% if user.is_authenticated %}
+                    <li class="nav-item"><span class="navbar-text me-3">{{ user.email }}</span></li>
+                    <li class="nav-item">
+                        <form method="post" action="{% url 'users:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm">Выход</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">Вход</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:register' %}">Регистрация</a></li>
+                {% endif %}
             </ul>
         </div>
     </nav>
