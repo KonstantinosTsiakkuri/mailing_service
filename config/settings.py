@@ -135,6 +135,27 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 
+# Cache
+# https://docs.djangoproject.com/en/6.1/topics/cache/
+# Если в .env задан REDIS_URL, кэш хранится в Redis (общий для всех процессов), иначе - в памяти процесса.
+
+if os.getenv("REDIS_URL"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": os.getenv("REDIS_URL"),
+            "KEY_PREFIX": "mailing",
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "mailing-cache",
+        }
+    }
+
+
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 # В Django 6.1 почта настраивается словарём MAILERS (старые EMAIL_HOST и др. объявлены устаревшими

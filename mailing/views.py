@@ -3,7 +3,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.cache import cache_control, cache_page, never_cache
+from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from mailing.forms import MailingForm
@@ -17,6 +20,11 @@ from mailing.services import MailingSendError, get_home_statistics, get_user_sta
 # чужие объекты не может никто: в view изменения и удаления фильтр по владельцу остаётся всегда.
 
 
+# Порядок важен: декораторы применяются снизу вверх, поэтому самый верхний работает "снаружи".
+# cache_page не сохраняет ответы с заголовком private, поэтому cache_control стоит снаружи от него.
+@method_decorator(cache_control(private=True), name="dispatch")  # браузеру можно кэшировать, общим прокси - нельзя
+@method_decorator(cache_page(60), name="dispatch")  # страница целиком хранится в кэше сервера 60 секунд
+@method_decorator(vary_on_cookie, name="dispatch")  # у каждого посетителя (по cookie) своя копия страницы
 class HomeView(TemplateView):
     template_name = "mailing/home.html"
 
@@ -25,7 +33,12 @@ class HomeView(TemplateView):
         context.update(get_home_statistics())
         return context
 
+    def render_to_response(self, context, **response_kwargs):
+        # TemplateResponse рисуется лениво; рисуем сразу, чтобы декораторы кэша работали с готовой страницей
+        return super().render_to_response(context, **response_kwargs).render()
 
+
+@method_decorator(never_cache, name="dispatch")
 class StatisticsView(LoginRequiredMixin, TemplateView):
     template_name = "mailing/statistics.html"
 
@@ -35,6 +48,7 @@ class StatisticsView(LoginRequiredMixin, TemplateView):
         return context
 
 
+@method_decorator(never_cache, name="dispatch")
 class ClientListView(LoginRequiredMixin, ListView):
     model = Client
     template_name = "mailing/client_list.html"
@@ -47,6 +61,7 @@ class ClientListView(LoginRequiredMixin, ListView):
         return queryset.filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class ClientCreateView(LoginRequiredMixin, CreateView):
     model = Client
     fields = [
@@ -62,6 +77,7 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+@method_decorator(never_cache, name="dispatch")
 class ClientDetailView(LoginRequiredMixin, DetailView):
     model = Client
     template_name = "mailing/client_detail.html"
@@ -74,6 +90,7 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
         return queryset.filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class ClientUpdateView(LoginRequiredMixin, UpdateView):
     model = Client
     fields = [
@@ -88,6 +105,7 @@ class ClientUpdateView(LoginRequiredMixin, UpdateView):
         return super().get_queryset().filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class ClientDeleteView(LoginRequiredMixin, DeleteView):
     model = Client
     template_name = "mailing/client_confirm_delete.html"
@@ -98,6 +116,7 @@ class ClientDeleteView(LoginRequiredMixin, DeleteView):
         return super().get_queryset().filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MessageListView(LoginRequiredMixin, ListView):
     model = Message
     template_name = "mailing/message_list.html"
@@ -107,6 +126,7 @@ class MessageListView(LoginRequiredMixin, ListView):
         return super().get_queryset().filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MessageCreateView(LoginRequiredMixin, CreateView):
     model = Message
     fields = ["subject", "body"]
@@ -118,6 +138,7 @@ class MessageCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MessageDetailView(LoginRequiredMixin, DetailView):
     model = Message
     template_name = "mailing/message_detail.html"
@@ -127,6 +148,7 @@ class MessageDetailView(LoginRequiredMixin, DetailView):
         return super().get_queryset().filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MessageUpdateView(LoginRequiredMixin, UpdateView):
     model = Message
     fields = ["subject", "body"]
@@ -137,6 +159,7 @@ class MessageUpdateView(LoginRequiredMixin, UpdateView):
         return super().get_queryset().filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MessageDeleteView(LoginRequiredMixin, DeleteView):
     model = Message
     template_name = "mailing/message_confirm_delete.html"
@@ -155,6 +178,7 @@ class MessageDeleteView(LoginRequiredMixin, DeleteView):
             return redirect("mailing:message_detail", pk=self.object.pk)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MailingListView(LoginRequiredMixin, ListView):
     model = Mailing
     template_name = "mailing/mailing_list.html"
@@ -169,6 +193,7 @@ class MailingListView(LoginRequiredMixin, ListView):
         return mailings
 
 
+@method_decorator(never_cache, name="dispatch")
 class MailingCreateView(LoginRequiredMixin, CreateView):
     model = Mailing
     form_class = MailingForm
@@ -186,6 +211,7 @@ class MailingCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MailingDetailView(LoginRequiredMixin, DetailView):
     model = Mailing
     template_name = "mailing/mailing_detail.html"
@@ -203,6 +229,7 @@ class MailingDetailView(LoginRequiredMixin, DetailView):
         return mailing
 
 
+@method_decorator(never_cache, name="dispatch")
 class MailingUpdateView(LoginRequiredMixin, UpdateView):
     model = Mailing
     form_class = MailingForm
@@ -224,6 +251,7 @@ class MailingUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
 
+@method_decorator(never_cache, name="dispatch")
 class MailingDeleteView(LoginRequiredMixin, DeleteView):
     model = Mailing
     template_name = "mailing/mailing_confirm_delete.html"
@@ -234,6 +262,7 @@ class MailingDeleteView(LoginRequiredMixin, DeleteView):
         return super().get_queryset().filter(owner=self.request.user)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MailingSendView(LoginRequiredMixin, View):
     """Запуск рассылки кнопкой. Принимает только POST (данные меняются, поэтому GET нельзя)."""
 
@@ -248,6 +277,7 @@ class MailingSendView(LoginRequiredMixin, View):
         return redirect("mailing:mailing_detail", pk=mailing.pk)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MailingToggleActiveView(PermissionRequiredMixin, View):
     """Отключение и включение рассылки менеджером (любой рассылки, только POST)."""
 

@@ -1,8 +1,17 @@
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db.models import Count, Q
 from django.utils import timezone
 
 from mailing.models import Client, Mailing, MailingAttempt
+
+HOME_STATS_KEY = "home_statistics"
+HOME_STATS_TIMEOUT = 60  # секунд: статусы рассылок зависят от времени, поэтому долго держать нельзя
+USER_STATS_TIMEOUT = 120  # секунд: сбрасывается ещё и при любом изменении данных пользователя
+
+
+def user_stats_key(user_id):
+    return f"user_statistics_{user_id}"
 
 
 class MailingSendError(Exception):
@@ -46,13 +55,24 @@ def send_mailing(mailing):
 
     # Все попытки сохраняются одним запросом к БД
     MailingAttempt.objects.bulk_create(attempts)
+    # bulk_create не вызывает сигналы, поэтому кэш статистики сбрасываем здесь вручную
+    cache.delete(user_stats_key(mailing.owner_id))
 
     success = sum(1 for attempt in attempts if attempt.status == MailingAttempt.STATUS_SUCCESS)
     return success, len(attempts) - success
 
 
 def get_home_statistics():
-    """Показатели для главной страницы: всего рассылок, активных рассылок, всего клиентов."""
+    """Показатели для главной страницы (из кэша; если там пусто - считаются заново)."""
+    stats = cache.get(HOME_STATS_KEY)
+    if stats is None:
+        stats = calculate_home_statistics()
+        cache.set(HOME_STATS_KEY, stats, HOME_STATS_TIMEOUT)
+    return stats
+
+
+def calculate_home_statistics():
+    """Считает показатели главной: всего рассылок, активных рассылок, всего клиентов."""
     # Статусы хранятся в БД и сами не меняются, поэтому перед подсчётом пересчитываем их
     for mailing in Mailing.objects.all():
         mailing.update_status()
@@ -67,6 +87,16 @@ def get_home_statistics():
 
 
 def get_user_statistics(user):
+    """Статистика пользователя (из кэша; если там пусто - считается заново)."""
+    key = user_stats_key(user.pk)
+    stats = cache.get(key)
+    if stats is None:
+        stats = calculate_user_statistics(user)
+        cache.set(key, stats, USER_STATS_TIMEOUT)
+    return stats
+
+
+def calculate_user_statistics(user):
     """Статистика попыток рассылок пользователя: итоги и разбивка по каждой рассылке."""
     success_filter = Q(status=MailingAttempt.STATUS_SUCCESS)
     failed_filter = Q(status=MailingAttempt.STATUS_FAILED)

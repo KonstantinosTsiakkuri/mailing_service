@@ -14,14 +14,17 @@ from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import force_bytes, force_str
+from django.utils.decorators import method_decorator
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views import View
+from django.views.decorators.cache import never_cache
 from django.views.generic import CreateView, ListView
 
 from users.forms import UserLoginForm, UserPasswordResetForm, UserRegisterForm, UserSetPasswordForm
 from users.models import User
 
 
+@method_decorator(never_cache, name="dispatch")
 class RegisterView(CreateView):
     model = User
     form_class = UserRegisterForm
@@ -104,6 +107,7 @@ class UserPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "users/password_reset_complete.html"
 
 
+@method_decorator(never_cache, name="dispatch")
 class UserListView(PermissionRequiredMixin, ListView):
     """Список пользователей сервиса (для менеджеров)."""
 
@@ -114,6 +118,7 @@ class UserListView(PermissionRequiredMixin, ListView):
     ordering = ["email"]
 
 
+@method_decorator(never_cache, name="dispatch")
 class UserToggleActiveView(PermissionRequiredMixin, View):
     """Блокировка и разблокировка пользователя (только POST)."""
 
