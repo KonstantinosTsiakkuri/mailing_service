@@ -3,11 +3,20 @@ from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from mailing.forms import MailingForm
 from mailing.models import Client, Mailing, Message
-from mailing.services import MailingSendError, send_mailing
+from mailing.services import MailingSendError, get_home_statistics, send_mailing
+
+
+class HomeView(TemplateView):
+    template_name = "mailing/home.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(get_home_statistics())
+        return context
 
 
 class ClientListView(ListView):

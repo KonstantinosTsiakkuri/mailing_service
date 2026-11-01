@@ -1,7 +1,7 @@
 from django.core.mail import send_mail
 from django.utils import timezone
 
-from mailing.models import MailingAttempt
+from mailing.models import Client, Mailing, MailingAttempt
 
 
 class MailingSendError(Exception):
@@ -46,3 +46,18 @@ def send_mailing(mailing):
 
     success = sum(1 for attempt in attempts if attempt.status == MailingAttempt.STATUS_SUCCESS)
     return success, len(attempts) - success
+
+
+def get_home_statistics():
+    """Показатели для главной страницы: всего рассылок, активных рассылок, всего клиентов."""
+    # Статусы хранятся в БД и сами не меняются, поэтому перед подсчётом пересчитываем их
+    for mailing in Mailing.objects.all():
+        mailing.update_status()
+    now = timezone.now()
+    return {
+        "mailings_total": Mailing.objects.count(),
+        "mailings_active": Mailing.objects.filter(
+            status=Mailing.STATUS_LAUNCHED, start_time__lte=now, end_time__gte=now
+        ).count(),
+        "clients_total": Client.objects.count(),
+    }

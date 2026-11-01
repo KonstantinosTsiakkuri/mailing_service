@@ -9,8 +9,9 @@
 <body>
     <nav class="navbar navbar-expand navbar-dark bg-dark">
         <div class="container">
-            <span class="navbar-brand">Сервис рассылок</span>
+            <a class="navbar-brand" href="{% url 'home' %}">Сервис рассылок</a>
             <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Главная</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'mailing:client_list' %}">Клиенты</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'mailing:message_list' %}">Сообщения</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'mailing:mailing_list' %}">Рассылки</a></li>
