@@ -116,7 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "ru"
 
 TIME_ZONE = "Europe/Moscow"
 
@@ -133,9 +133,31 @@ STATIC_URL = "static/"
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# В Django 6.1 почта настраивается словарём MAILERS (старые EMAIL_HOST и др. объявлены устаревшими
+# и вместе с MAILERS использоваться не могут). Если в .env задан EMAIL_HOST - письма уходят
+# по SMTP, иначе они просто печатаются в терминал (удобно при разработке).
 
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
-    },
-}
+if os.getenv("EMAIL_HOST"):
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": os.getenv("EMAIL_HOST"),
+                "port": int(os.getenv("EMAIL_PORT", "465")),
+                "username": os.getenv("EMAIL_HOST_USER"),
+                "password": os.getenv("EMAIL_HOST_PASSWORD"),
+                "use_ssl": os.getenv("EMAIL_USE_SSL", "true").lower() == "true",
+                "use_tls": os.getenv("EMAIL_USE_TLS", "false").lower() == "true",
+                "timeout": 10,
+            },
+        },
+    }
+else:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
+
+# Адрес отправителя. Для большинства почтовых сервисов (например, Яндекс) он должен совпадать с логином
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL") or os.getenv("EMAIL_HOST_USER") or "noreply@example.com"

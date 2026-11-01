@@ -12,6 +12,11 @@
     <p><strong>Окончание:</strong> {{ mailing.end_time|date:"d.m.Y H:i" }}</p>
     <p><strong>Статус:</strong> {{ mailing.status }}</p>
 
+    <form method="post" action="{% url 'mailing:mailing_send' mailing.pk %}" class="mb-3">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Отправить</button>
+    </form>
+
     <h2 class="h4 mt-4">Получатели</h2>
     <ul>
         {% for client in mailing.recipients.all %}

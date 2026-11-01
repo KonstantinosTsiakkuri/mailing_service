@@ -1,11 +1,13 @@
 from django.contrib import messages
 from django.db.models import ProtectedError
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from mailing.forms import MailingForm
 from mailing.models import Client, Mailing, Message
+from mailing.services import MailingSendError, send_mailing
 
 
 class ClientListView(ListView):
@@ -138,3 +140,17 @@ class MailingDeleteView(DeleteView):
     template_name = "mailing/mailing_confirm_delete.html"
     success_url = reverse_lazy("mailing:mailing_list")
     context_object_name = "mailing"
+
+
+class MailingSendView(View):
+    """Запуск рассылки кнопкой. Принимает только POST (данные меняются, поэтому GET нельзя)."""
+
+    def post(self, request, pk):
+        mailing = get_object_or_404(Mailing, pk=pk)
+        try:
+            success, failed = send_mailing(mailing)
+        except MailingSendError as error:
+            messages.error(request, str(error))
+        else:
+            messages.success(request, f"Рассылка отправлена: успешно {success}, неуспешно {failed}")
+        return redirect("mailing:mailing_detail", pk=mailing.pk)
